@@ -51,7 +51,7 @@
 插件是一个标准的 DSH bundle（`package.json` + `cordis.patch.yml` + host/client 两个入口）。
 
 ```bash
-git clone <repo> ~/.dsh/plugins/dsh-team-model
+git clone https://github.com/Chruix/dsh-team-model ~/.dsh/plugins/dsh-team-model
 ```
 
 然后在 DSH 的插件管理器里以该目录安装（`install_bundle`），或在 profile 里加一行：
