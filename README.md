@@ -38,9 +38,9 @@
 
 在队友会话里打开时自动聚焦该队友（标题变成「模型」），只改它自己的模型，不再列整支团队。
 
-**3. 改完真的粘住**
+**3. 切换后一直有效**
 
-`selectionFor(agent).current` 是一次性的：请求消费一次就清空并回退到会话头/默认模型。插件在**队友** agent 上挂 `agent/request` waterfall，按会话投影 `modelSelection.pending ?? lastUsed` 覆写 provider/model/reasoningEffort，所以第二轮、第三轮都还是你选的模型。
+内置的模型选择是一次性的：`selectionFor(agent).current` 被一次请求消费后就清空，下一次请求回退到会话头或默认模型——表现出来的症状就是「切换只顶一轮」。插件在**队友** agent 上挂 `agent/request` waterfall，按会话投影 `modelSelection.pending ?? lastUsed` 覆写 provider/model/reasoningEffort，所以第二轮、第三轮仍然是你选的那个模型，直到你手动再改一次。
 
 **4. 离线队友也能排队**
 
