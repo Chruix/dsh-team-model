@@ -1,0 +1,6 @@
+# Agent Teams 队友模型（Host + Web UI）
+# 一个 bundle 行：Host 提供带 model 的 spawn 工具、model/selection 写入与 loopback RPC；
+# Client 在会话头部提供模型切换入口。默认路由沿用内置工具插件的 spawn / fork。
+- insert:
+    - id: team-model
+      name: dsh-team-model

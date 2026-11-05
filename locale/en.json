@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Teammate Models",
+    "description": "Lets the model and the user choose which LLM each Agent Teams teammate runs on, and switches a running teammate from the session header."
+  }
+}

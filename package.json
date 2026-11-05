@@ -1,0 +1,55 @@
+{
+  "name": "dsh-team-model",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Agent Teams 队友模型：让模型和用户都能指定每个队友的模型，并在 Web UI 的会话头部、输入框工具行与设置页切换。",
+  "keywords": [
+    "deepseek",
+    "dsh",
+    "agent-teams",
+    "cordis-plugin",
+    "model-selection",
+    "subagent"
+  ],
+  "license": "MIT",
+  "author": "Kiyu",
+  "homepage": "https://github.com/Chruix/dsh-team-model#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Chruix/dsh-team-model.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Chruix/dsh-team-model/issues"
+  },
+  "scripts": {
+    "test": "node test/client-smoke.cjs",
+    "test:client": "node test/client-smoke.cjs",
+    "test:rpc": "node test/rpc.cjs",
+    "test:globals": "node test/globals.cjs"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  }
+}
