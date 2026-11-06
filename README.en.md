@@ -105,10 +105,23 @@ POST /dsh-team-model/<endpoint>
     policy: true            # inject a short usage section into the Lead's system prompt
 ```
 
+## Security boundaries
+
+The plugin's RPC listens on the host's loopback interface only, and every request is checked:
+
+- `Host` must be a loopback address (`127.0.0.0/8`, `localhost`, `[::1]`, and their IPv4-mapped forms);
+- if `Origin` is present it must be a loopback origin, and `Sec-Fetch-Site` must be `same-origin` or `none`;
+- `Content-Type` must be `application/json`, bodies are capped at 64 KiB and larger ones get 413;
+- `rpcId` must be a string of 1–128 characters.
+
+The plugin never reads credentials and stores nothing outside the session logs; every model change is appended as a `model/selection` event to that session — the same path `/model` uses.
+
 ## Known limitations
 
 - Teams are isolated per session: a Lead only manages its own session's teammates, so "global settings" means iterating over every live Lead.
-- The stock team plugin defaults to `maxMembers: 8` and exposes no public way to remove a teammate.
+- Each session owns exactly one team, and its size is capped by the stock team plugin's `maxMembers`
+  (the plugin default is 16; this profile configures 8). There is no public way to remove a teammate,
+  so once the team is full you can only reuse the members you have.
 - Reasoning effort is declared per model: providers whose catalog entries carry an empty `reasoning.efforts` (some aggregator gateways, for example) show no effort selector, and forcing one is rejected with a readable error instead of being silently dropped.
 - The UI depends on the virtual module `@deepseek-ai/dsh-client-ui-primitives` provided by the web shell; it must not be declared as a dependency in `package.json`.
 

@@ -105,10 +105,22 @@ POST /dsh-team-model/<endpoint>
     policy: true            # 是否向 Lead 注入一段使用说明
 ```
 
+## 安全边界
+
+插件的 RPC 只监听宿主自己的回环地址，并在处理请求前逐项检查：
+
+- `Host` 必须是回环地址（`127.0.0.0/8`、`localhost`、`[::1]` 及其 IPv4 映射形式）；
+- 带了 `Origin` 就必须是回环来源；`Sec-Fetch-Site` 必须是 `same-origin` 或 `none`；
+- `Content-Type` 必须是 `application/json`，body 上限 64 KiB，超过直接 413；
+- `rpcId` 必须是 1–128 字符的字符串。
+
+插件不读凭据、不写会话以外的存储；所有模型改动都以 `model/selection` 事件写进对应会话的日志，和 `/model` 用的是同一条链路。
+
 ## 已知限制
 
 - 团队按会话隔离：Lead 只能管理自己会话中的队友，因此「全局设置」的实现方式是遍历所有在线 Lead。
-- 内置团队插件的 `maxMembers` 默认为 8，且没有移除队友的公开接口。
+- 一个会话只有一支 team，成员数受内置团队插件的 `maxMembers` 限制（插件默认 16，本机 profile 配的是 8），
+  且没有移除队友的公开接口——满员后只能复用已有队友。
 - 推理强度由各模型分别声明：目录中 `reasoning.efforts` 为空的提供方（例如某些聚合网关）不显示强度入口，强行传入会被拒绝并返回可读的错误信息。
 - UI 依赖前端 shell 提供的虚拟模块 `@deepseek-ai/dsh-client-ui-primitives`，无需在 `package.json` 中声明依赖。
 

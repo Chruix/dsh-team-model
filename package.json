@@ -1,6 +1,6 @@
 {
   "name": "dsh-team-model",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Agent Teams 队友模型：让模型和用户都能指定每个队友的模型，并在 Web UI 的会话头部、输入框工具行与设置页切换。",
   "keywords": [

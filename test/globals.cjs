@@ -1,6 +1,9 @@
 /* 覆盖 tm.globals / tm.setAll：跨会话聚合、批量设置、离线排队与错误处理。
  *
  *   DSH_RPC_BASE=http://127.0.0.1:43189/dsh-team-model node test/globals.cjs
+ *
+ * 默认只读：只验证 tm.globals 的聚合与目录。要真正改写队友模型（会写进本机会话日志）
+ * 再加 DSH_TM_LIVE=1。
  */
 const BASE = process.env.DSH_RPC_BASE ?? 'http://127.0.0.1:43189/dsh-team-model';
 
@@ -33,6 +36,13 @@ function assert(ok, message) {
 	assert(members.every((member) => typeof member.providerId === 'string' && member.providerId !== ''), 'every teammate has a resolved provider');
 	assert(Array.isArray(value?.catalog?.groups) && value.catalog.groups.length > 0, 'globals carries the catalog');
 	console.log('    sample: ' + members.slice(0, 3).map((m) => `${m.name}=${m.providerId}/${m.model}${m.live ? '' : '(offline)'}`).join(', '));
+
+	/* 默认只读：下面几项会真的调用 tm.setAll 改写本机队友模型。 */
+	if (process.env.DSH_TM_LIVE !== '1') {
+		console.log('skip  mutating checks (set DSH_TM_LIVE=1 to also exercise tm.setAll)');
+		console.log('ALL GLOBALS CHECKS PASSED');
+		return;
+	}
 
 	const bad = await call('tm.setAll', { provider: 'no-such-provider', model: 'x' });
 	assert(bad.body?.result?.ok === false && /no adapter|unknown provider|cannot route/i.test(String(bad.body.result.error.message)), 'setAll rejects an unknown provider with a readable message');

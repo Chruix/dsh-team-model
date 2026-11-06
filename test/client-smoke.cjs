@@ -111,12 +111,12 @@ const FAKE = {
 	selfId: 'child-1',
 	members: [
 		{ id: 'lead-1', name: 'lead', role: 'lead', status: 'running', providerId: 'gateway', model: 'vendor/model-a', live: true },
-		{ id: 'child-1', name: 'reviewer', role: 'teammate', status: 'inactive', providerId: 'ai-hub', model: 'model-b', live: false },
+		{ id: 'child-1', name: 'reviewer', role: 'teammate', status: 'inactive', providerId: 'acme-gateway', model: 'model-b', live: false },
 		{ id: 'child-2', name: 'tester', role: 'teammate', status: 'inactive', providerId: 'gateway', model: 'vendor/model-c', live: false },
 	],
 	catalog: {
 		groups: [
-			{ id: 'ai-hub', name: 'AI Hub', models: [
+			{ id: 'acme-gateway', name: 'Acme Gateway', models: [
 				{ id: 'model-b', name: 'Model B', description: 'Fast general purpose.', reasoning: { efforts: [{ id: 'off', name: 'Off' }, { id: 'low', name: 'Low' }, { id: 'high', name: 'High' }, { id: 'max', name: 'Max' }], defaultEffort: 'high' } },
 				{ id: 'model-c', name: 'Model C' },
 			] },
@@ -137,7 +137,7 @@ const GLOBALS = {
 			leadName: 'lead',
 			leadTitle: '修模型入口',
 			members: [
-				{ id: 'child-1', name: 'reviewer', role: 'teammate', status: 'inactive', providerId: 'ai-hub', model: 'model-b', live: false },
+				{ id: 'child-1', name: 'reviewer', role: 'teammate', status: 'inactive', providerId: 'acme-gateway', model: 'model-b', live: false },
 				{ id: 'child-2', name: 'tester', role: 'teammate', status: 'running', providerId: 'gateway', model: 'vendor/model-c', live: true }
 			]
 		}
@@ -173,7 +173,7 @@ if (headerReg === undefined || seatReg === undefined) {
 
 const leadProps = { sessionId: 'lead-1', useSession: (sel) => sel({ subagent: undefined }) };
 const BIG = JSON.parse(JSON.stringify(FAKE));
-BIG.catalog.groups = [{ id: 'ai-hub', name: 'AI Hub', models: ['a1', 'a2', 'a3', 'a4', 'a5'].map((id) => ({ id, name: 'Model ' + id })) }];
+BIG.catalog.groups = [{ id: 'acme-gateway', name: 'Acme Gateway', models: ['a1', 'a2', 'a3', 'a4', 'a5'].map((id) => ({ id, name: 'Model ' + id })) }];
 
 const childProps = { sessionId: 'child-1', useSession: (sel) => sel({ subagent: { address: { parentSessionId: 'lead-1' } } }) };
 
@@ -275,7 +275,7 @@ assert(settingsText.includes('整队统一'), 'settings page offers a bulk actio
 assert(settingsText.includes('离线'), 'settings page marks offline teammates');
 
 const pickerText = collectText(render(settingsReg, {}, [GLOBALS, false, null, null, 'child-1'])).join('|');
-assert(pickerText.includes('AI Hub') && pickerText.includes('Model B'), 'picker opens for one member with provider groups: ' + pickerText);
+assert(pickerText.includes('Acme Gateway') && pickerText.includes('Model B'), 'picker opens for one member with provider groups: ' + pickerText);
 
 const settingsEmpty = collectText(render(settingsReg, {}, [null, false, null, null, null])).join('|');
 assert(settingsEmpty.includes('读取中') || settingsEmpty.includes('当前没有在线的'), 'settings page handles the empty/loading state');

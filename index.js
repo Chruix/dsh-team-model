@@ -82,6 +82,7 @@ function routeLabel(selection) {
 export function apply(ctx, config = {}) {
 	const resolved = { ...DEFAULTS, ...(config !== null && typeof config === 'object' ? config : {}) };
 	/** 一次 spawn 内携带目标路由（子会话创建发生在同一条 async 调用链里）。 */
+	const DEBUG = process.env.DSH_TM_DEBUG === '1';
 	const spawned = new AsyncLocalStorage();
 	/** 子会话暂时没有活 Agent 时先记住，等它下次创建再落地。 */
 	const queued = new Map();
@@ -629,6 +630,7 @@ export function apply(ctx, config = {}) {
 	const installed = new Map();
 	const TRACE = [];
 	const trace = (record) => {
+		if (!DEBUG) return;
 		TRACE.push(record);
 		if (TRACE.length > 40) TRACE.shift();
 	};
@@ -681,6 +683,13 @@ export function apply(ctx, config = {}) {
 	ctx.on('agent/disposed', ({ agent }) => {
 		installed.get(agent)?.();
 		installed.delete(agent);
+		queued.delete(agent.id);
+		chosen.delete(agent.id);
+		try {
+			persistedCache.delete(agent.id);
+		} catch {
+			/* 缓存尚未初始化 */
+		}
 	});
 
 	// connection.rpc.handle 在本机这条链上不可用：它会把注册落到"connection 服务自己的 ctx"上，
@@ -689,7 +698,9 @@ export function apply(ctx, config = {}) {
 	// 直接在 webServer 上挂一个 prefix 路由，并自己实现 connection 客户端的 RPC 线上格式：
 	//   POST <CHANNEL>/<endpoint>  { type:"client-request", rpcId, method, payload }
 	//   ← 200 { type:"server-response", rpcId, result: { ok:true, value } | { ok:false, error } }
-	const LOOPBACK_HOST = /^(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/iu;
+	const LOOPBACK_HOST = /^(127(?:\.\d{1,3}){3}|localhost|\[::1\]|\[::ffff:127(?:\.\d{1,3}){3}\])(?::\d+)?$/iu;
+	const LOOPBACK_ORIGIN = /^https?:\/\/(127(?:\.\d{1,3}){3}|localhost|\[::1\]|\[::ffff:127(?:\.\d{1,3}){3}\])(?::\d+)?$/iu;
+	const MAX_BODY_BYTES = 64 * 1024;
 	const rpcHandler = async (request, response) => {
 		const reply = (status, body) => {
 			response.writeHead(status, { 'content-type': 'application/json; charset=utf-8' });
@@ -709,8 +720,29 @@ export function apply(ctx, config = {}) {
 		if (String(request.headers['content-type'] ?? '').split(';', 1)[0]?.trim().toLowerCase() !== 'application/json') {
 			return reply(415, { error: 'content type must be application/json' });
 		}
+		/* 跨站防线：浏览器会带 Origin / Sec-Fetch-Site，非本机来源一律拒绝。 */
+		const origin = request.headers.origin;
+		if (typeof origin === 'string' && origin !== '' && origin !== 'null' && !LOOPBACK_ORIGIN.test(origin)) {
+			return reply(403, { error: 'forbidden origin' });
+		}
+		const fetchSite = request.headers['sec-fetch-site'];
+		if (typeof fetchSite === 'string' && fetchSite !== '' && fetchSite !== 'same-origin' && fetchSite !== 'none') {
+			return reply(403, { error: 'forbidden origin' });
+		}
+		/* 体积上限：读之前看 content-length，读的过程中再兜一次，避免被大 body 拖垮宿主主进程。 */
+		const declared = Number(request.headers['content-length']);
+		if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
+			return reply(413, { error: 'body is too large' });
+		}
+		request.setTimeout(5000, () => request.destroy());
 		let raw = '';
-		for await (const chunk of request) raw += chunk;
+		for await (const chunk of request) {
+			raw += chunk;
+			if (raw.length > MAX_BODY_BYTES) {
+				request.destroy();
+				return reply(413, { error: 'body is too large' });
+			}
+		}
 		let message;
 		try {
 			message = JSON.parse(raw);
@@ -718,6 +750,9 @@ export function apply(ctx, config = {}) {
 			return reply(400, { error: 'body is not JSON' });
 		}
 		const rpcId = message?.rpcId;
+		if (typeof rpcId !== 'string' || rpcId.length === 0 || rpcId.length > 128) {
+			return reply(400, { error: 'rpcId must be a non-empty string of at most 128 characters' });
+		}
 		try {
 			const value = await handler(endpoint, message?.payload ?? {});
 			const result = value?.ok === false
@@ -744,6 +779,7 @@ export function apply(ctx, config = {}) {
 			trace({ step: 'rpc-registered', label, disposer: typeof dispose });
 			ctx.effect(() => dispose, 'team-model: rpc');
 		} catch (error) {
+			warn(new Error(`rpc channel ${CHANNEL} was not registered (${label}): ${String(error?.message ?? error)}`));
 			trace({ step: 'rpc-failed', label, error: String(error?.message ?? error) });
 		}
 	};
